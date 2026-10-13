@@ -6,5 +6,5 @@ python-dotenv
 httpx
 beautifulsoup4
 reportlab
-PyJWT
-pwdlib[argon2]
+pwdlib
+argon2-cffi
