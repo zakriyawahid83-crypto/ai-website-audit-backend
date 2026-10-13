@@ -1,6 +1,5 @@
 
 import os
-from datetime import datetime, timezone
 
 import jwt
 from dotenv import load_dotenv
@@ -30,12 +29,19 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    if not SECRET_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication configuration is missing.",
+        )
+
     try:
         payload = jwt.decode(
             token,
             SECRET_KEY,
             algorithms=[ALGORITHM],
         )
+
         user_id = payload.get("sub")
 
         if user_id is None:
@@ -53,25 +59,11 @@ def get_current_user(
 
     return user
 
-def require_admin(current_user: User = Depends(get_current_user)):
-    """
-    Sirf admin role wale users ko access dein.
-    Existing JWT authentication ko reuse karta hai.
-    """
-    role = getattr(current_user, "role", "")
 
-    if str(role).lower() != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Admin access required.",
-        )
-
-    return current_user
-
-def require_admin(current_user: User = Depends(get_current_user)):
-    role = str(getattr(current_user, "role", "")).lower()
-
-    if role != "admin":
+def require_admin(
+    current_user: User = Depends(get_current_user),
+):
+    if str(getattr(current_user, "role", "")).lower() != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required.",
