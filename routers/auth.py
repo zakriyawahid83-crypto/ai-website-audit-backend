@@ -112,42 +112,47 @@ def login(
     user_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
-    email = user_data.username.strip().lower()
+    try:
+        email = user_data.username.strip().lower()
 
-    user = (
-        db.query(User)
-        .filter(User.email == email)
-        .first()
-    )
+        user = (
+            db.query(User)
+            .filter(User.email == email)
+            .first()
+        )
 
-    if (
-        user is None
-        or not password_hash.verify(
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not password_hash.verify(
             user_data.password,
             user.hashed_password,
-        )
-    ):
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        access_token = create_access_token(user.id)
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user_id": user.id,
+            "role": str(user.role or "user").lower(),
+        }
+
+    except HTTPException:
+        raise
+    except Exception:
+        import logging
+        logging.exception("Login failed due to an unexpected error")
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=500,
+            detail="Login failed due to a server error. Check backend logs.",
         )
-
-    access_token = create_access_token(user.id)
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user_id": user.id,
-        "role": str(user.role or "user").lower(),
-    }
-
-
-@router.get(
-    "/me",
-    response_model=UserResponse,
-)
-def get_me(
-    current_user: User = Depends(get_current_user),
-):
-    return current_user
