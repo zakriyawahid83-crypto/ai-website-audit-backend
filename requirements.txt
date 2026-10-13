@@ -9,3 +9,4 @@ reportlab
 PyJWT
 pwdlib
 argon2-cffi
+email-validator
