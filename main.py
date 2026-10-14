@@ -1,4 +1,3 @@
-
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -39,6 +38,7 @@ app = FastAPI(
 )
 
 
+# CORS: Allow local frontend and deployed Vercel frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -46,6 +46,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5174",
+        "https://ai-website-audit-frontend.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -78,7 +79,10 @@ def database_health():
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
 
-        return {"success": True, "database": "connected"}
+        return {
+            "success": True,
+            "database": "connected",
+        }
 
     except SQLAlchemyError as exc:
         print(f"Database health check failed: {exc}")
@@ -88,6 +92,7 @@ def database_health():
         )
 
 
+# Register API routers
 app.include_router(auth_router)
 app.include_router(websites_router)
 app.include_router(audits_router)
