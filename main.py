@@ -14,9 +14,9 @@ from routers.websites import router as websites_router
 from routers.audits import router as audits_router
 from routers.admin import router as admin_router
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database tables when the API starts."""
     try:
         Base.metadata.create_all(bind=engine)
         print("Database tables initialized successfully.")
@@ -25,7 +25,6 @@ async def lifespan(app: FastAPI):
         raise
 
     yield
-
     print("AI Website Audit API shutting down.")
 
 
@@ -39,10 +38,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-
-# --------------------------------------------------
-# CORS CONFIGURATION
-# --------------------------------------------------
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,10 +53,6 @@ app.add_middleware(
 )
 
 
-# --------------------------------------------------
-# ROOT ENDPOINT
-# --------------------------------------------------
-
 @app.get("/", tags=["General"])
 def home():
     return {
@@ -72,10 +63,6 @@ def home():
     }
 
 
-# --------------------------------------------------
-# API HEALTH CHECK
-# --------------------------------------------------
-
 @app.get("/health", tags=["Health"])
 def health_check():
     return {
@@ -85,43 +72,27 @@ def health_check():
     }
 
 
-# --------------------------------------------------
-# DATABASE HEALTH CHECK
-# --------------------------------------------------
-
 @app.get("/health/database", tags=["Health"])
 def database_health():
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
 
-        return {
-            "success": True,
-            "database": "connected",
-        }
+        return {"success": True, "database": "connected"}
 
     except SQLAlchemyError as exc:
         print(f"Database health check failed: {exc}")
-
         raise HTTPException(
             status_code=503,
             detail="Database connection failed.",
         )
 
 
-# --------------------------------------------------
-# REGISTER ROUTERS
-# --------------------------------------------------
-
 app.include_router(auth_router)
 app.include_router(websites_router)
 app.include_router(audits_router)
 app.include_router(admin_router)
 
-
-# --------------------------------------------------
-# APPLICATION INFORMATION
-# --------------------------------------------------
 
 @app.get("/api/info", tags=["General"])
 def api_info():
